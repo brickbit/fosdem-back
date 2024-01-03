@@ -1,6 +1,5 @@
 package com.snap.fosdem.controller
 
-import com.snap.fosdem.model.Event
 import com.snap.fosdem.model.Track
 import com.snap.fosdem.service.FosdemScraper
 import org.springframework.web.bind.annotation.GetMapping
@@ -15,6 +14,6 @@ class FosdemScheduleController(
 
     @GetMapping("tracks/")
     fun getTracks(): List<Track> {
-        return scraper.getTracks()
+        return scraper.updateTracks()
     }
 }

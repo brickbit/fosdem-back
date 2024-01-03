@@ -8,4 +8,5 @@ data class Event(
         val startHourLink: String,
         val endHour: String,
         val endHourLink: String,
+        val color: String?,
 )

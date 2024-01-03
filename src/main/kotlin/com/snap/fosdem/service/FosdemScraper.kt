@@ -8,7 +8,7 @@ import java.lang.Exception
 @Service
 class FosdemScraper {
 
-    fun getTracks(): List<Track> {
+    fun updateTracks(): List<Track> {
         val document = Jsoup.connect("https://fosdem.org/2024/schedule/").get()
 
         val tracks = document.select(
@@ -29,21 +29,30 @@ class FosdemScraper {
                 .select("#main table")
                 .select(".table.table-striped.table-bordered.table-condensed tbody")[1].select("tr")
 
+        val colors = elements.select("td").filter { node ->
+            node.text() == ""
+        }.map {
+            it.className()
+        }
+
         val day = elements.select("h3").text()
         val list = elements.select("tr a")
         val events = list.mapIndexed { index, element ->
             if(index < list.size - 3 && index % 4 == 0) {
+                val indexForColor = if (index > 0) index / 4 else 0
                 Event(
-                        day = day,
-                        talk = getTalks(list[index].attr("href")),
-                        speaker = getSpeaker(list[index+1].attr("href")),
-                        startHour = list[index+2].text(),
-                        startHourLink = list[index+2].attr("href"),
-                        endHour = list[index+3].text(),
-                        endHourLink = list[index+3].attr("href")
+                    day = day,
+                    talk = getTalks(list[index].attr("href")),
+                    speaker = getSpeaker(list[index+1].attr("href")),
+                    startHour = list[index+2].text(),
+                    startHourLink = list[index+2].attr("href"),
+                    endHour = list[index+3].text(),
+                    endHourLink = list[index+3].attr("href"),
+                    color = colors.getOrNull(indexForColor)
                 )
             } else null
         }.filterNotNull()
+
 
         return events
     }
