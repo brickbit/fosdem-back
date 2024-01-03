@@ -13,7 +13,7 @@ class FosdemScraper {
 
         val tracks = document.select(
                 "#main .container-fluid .row-fluid .span3"
-        )[0].select("ul").map { it.select("li a") }.first
+        )[0].select("ul").map { it.select("li a") }.first()
 
         return tracks.map {
             Track(
