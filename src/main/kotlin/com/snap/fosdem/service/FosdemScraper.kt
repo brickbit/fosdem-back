@@ -2,12 +2,13 @@ package com.snap.fosdem.service
 
 import com.snap.fosdem.model.*
 import org.jsoup.Jsoup
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 import java.lang.Exception
 
 @Service
 class FosdemScraper {
-
+    @Cacheable(value= arrayOf("tracks"))
     fun updateTracks(): List<Track> {
         val document = Jsoup.connect("https://fosdem.org/2024/schedule/").get()
 
