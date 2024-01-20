@@ -12,16 +12,64 @@ class FosdemScraper {
     fun updateTracks(): List<Track> {
         val document = Jsoup.connect("https://fosdem.org/2024/schedule/").get()
 
-        val tracks = document.select(
-                "#main .container-fluid .row-fluid .span3"
-        )[0].select("ul").map { it.select("li a") }.first()
+        val tracksElements = document.select(
+            "#main .container-fluid .row-fluid .span3"
+        )
+        val tracks1 = tracksElements[0].select("ul").map { it.select("li a") }.first()
+        val tracks2 = tracksElements[1].select("ul").map { it.select("li a") }.first()
+        val tracks3 = tracksElements[2].select("ul").map { it.select("li a") }.first()
+        val tracks4 = tracksElements[3].select("ul").map { it.select("li a") }.first()
+
+        val tracks = tracks1 + tracks2 + tracks3 + tracks4
 
         return tracks.map {
             Track(
                     name = it.text(),
-                    events = getEventsForTrack(it.attr("href"))
+                    events = getEventsForTrack(it.attr("href")),
+                    stands = getStands()
             )
         }
+    }
+
+    fun getStands(): List<Stand> {
+        val document = Jsoup.connect("https://fosdem.org/2024/stands/").get()
+
+        val standElements = document.select(
+            "#main .container-fluid .row-fluid"
+        )
+        val title = standElements.select("h3").map { it.text() }
+        val image = standElements.select("img").map {  it.attr("src") }
+
+        val features: MutableList<List<StandFeatures>> = mutableListOf()
+        features.add(getStandsFeature(1)+getStandsFeature(2)+getStandsFeature(3))
+        features.add(getStandsFeature(5))
+        features.add(getStandsFeature(7))
+        features.add(getStandsFeature(9))
+
+        val stands = title.mapIndexed { index, item ->
+            Stand(title = title[index], image = image[index], features = features[index].toList())
+        }
+        return stands
+    }
+
+    private fun getStandsFeature(index: Int): List<StandFeatures> {
+        val document = Jsoup.connect("https://fosdem.org/2024/stands/").get()
+        val features = mutableListOf<StandFeatures>()
+        val standElements = document.select(
+            "#main .container-fluid .row-fluid"
+        )
+
+        val subtitles = standElements[index].select("h4").text()
+
+        standElements[index].select("tr").select("td").mapIndexed { index, item ->
+            if(item.select("h5").text().isNotEmpty()){
+                features.add(StandFeatures(type = item.select("h5").text(), subtitle = subtitles, companies = mutableListOf()))
+            } else {
+                features[features.size - 1].companies.add(item.select("td").text())
+            }
+        }
+        features.map { feature -> feature.companies.removeIf { it.all { char -> char.isDigit() } } }
+        return features.toList()
     }
 
     fun getEventsForTrack(url: String): List<Event> {
