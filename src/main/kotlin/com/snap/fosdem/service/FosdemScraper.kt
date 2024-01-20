@@ -37,59 +37,85 @@ class FosdemScraper {
         }
 
         val day = elements.select("h3").text()
-        val list = elements.select("tr a")
-        val events = list.mapIndexed { index, element ->
-            if(index < list.size - 3 && index % 4 == 0) {
-                val indexForColor = if (index > 0) index / 4 else 0
-                Event(
-                    day = day,
-                    talk = getTalks(list[index].attr("href")),
-                    speaker = getSpeaker(list[index+1].attr("href")),
-                    startHour = list[index+2].text(),
-                    startHourLink = list[index+2].attr("href"),
-                    endHour = list[index+3].text(),
-                    endHourLink = list[index+3].attr("href"),
-                    color = colors.getOrNull(indexForColor)
-                )
-            } else null
-        }.filterNotNull()
 
+        val startHoursList = mutableListOf<String>()
+        val endHoursList = mutableListOf<String>()
+        val speakerLinkList: MutableList<MutableList<String>> = mutableListOf()
+        val talkLinkList = mutableListOf<String>()
+
+        val list = elements.select("tr td")
+        val newlist = list.map { it }.toMutableList()
+        newlist.removeFirst()
+        newlist.removeIf { it.select("h3").text() == "Sunday" }
+
+        newlist.mapIndexed { index, item ->
+            if(url != "/2024/schedule/track/educational/") {
+                if (index % 5 == 0 && index < list.size - 4) {
+                    talkLinkList.add(newlist[index + 1].select("a").attr("href"))
+                    val speakerItems = newlist[index + 2].select("a").map {
+                        it.attr("href")
+                    }
+                    speakerLinkList.add(speakerItems.toMutableList())
+                    startHoursList.add(newlist[index + 3].text())
+                    endHoursList.add(newlist[index + 4].text())
+                }
+            } else {
+                if (index % 6 == 0 && index < list.size - 5) {
+                    talkLinkList.add(newlist[index + 1].select("a").attr("href"))
+                    val speakerItems = newlist[index + 2].select("a").map {
+                        it.attr("href")
+                    }
+                    speakerLinkList.add(speakerItems.toMutableList())
+                    startHoursList.add(newlist[index + 4].text())
+                    endHoursList.add(newlist[index + 5].text())
+                }
+            }
+        }
+
+        val indexForColor = mutableListOf<String?>()
+        list.mapIndexed { index, element ->
+            indexForColor.add(colors.getOrNull(if (index > 0) index / 4 else 0))
+        }
+
+
+        val events = startHoursList.mapIndexed { index, item ->
+            Event(
+                day = day,
+                speaker = speakerLinkList[index].map { getSpeakers(it) },
+                talk = getTalks(talkLinkList[index]),
+                startHour = startHoursList[index],
+                endHour = endHoursList[index],
+                color = indexForColor[index]
+            )
+        }
 
         return events
     }
 
-    fun getSpeaker(url: String): Speaker? {
+    fun getSpeakers(url: String): Speaker {
         val document = Jsoup.connect("https://fosdem.org$url").get()
-        try {
-            return Speaker(
-                    name = document.select("#main")[0].select("#pagetitles h1")[0].text(),
-                    image = document.select("#main").getOrNull(0)?.select("img")?.getOrNull(0)?.attr("src")?.let { "https://fosdem.org$it" },
-                    description = document.select("#main").getOrNull(0)?.select("p")?.joinToString("\n") {
-                        it.text()
-                    }
-            )
-        } catch (e: Exception) {
-            return null
-        }
+        return Speaker(
+                name = document.select("#main")[0].select("#pagetitles h1")[0].text(),
+                image = document.select("#main").getOrNull(0)?.select("img")?.getOrNull(0)?.attr("src")?.let { "https://fosdem.org$it" },
+                description = document.select("#main").getOrNull(0)?.select("p")?.joinToString("\n") {
+                    it.text()
+                }
+        )
     }
 
-    fun getTalks(url: String): Talk? {
+
+    fun getTalks(url: String): Talk {
         val document = Jsoup.connect("https://fosdem.org$url").get()
 
-        return try {
-            Talk(
-                    title = document.select("#main")[0].select("#pagetitles h1").text(),
-                    description = document.select("#main")[0].select(".event-blurb p").text(),
-                    track = document.select("#main")[0].select(".side-box a")[0].text(),
-                    room = getRooms(document.select("#main")[0].select(".side-box a")[1].attr("href")),
-                    day = document.select("#main")[0].select(".side-box a")[2].text(),
-                    start = document.select("#main")[0].select(".side-box a")[3].text(),
-                    end = document.select("#main")[0].select(".side-box a")[4].text()
-            )
-        } catch (e: Exception) {
-            return null
-        }
-
+        return Talk(
+                title = document.select("#main")[0].select("#pagetitles h1").text(),
+                description = document.select("#main")[0].select(".event-blurb p").text(),
+                track = document.select("#main")[0].select(".side-box a")[0].text(),
+                room = getRooms(document.select("#main")[0].select(".side-box a")[1].attr("href")),
+                day = document.select("#main")[0].select(".side-box a")[2].text(),
+                start = document.select("#main")[0].select(".side-box a")[3].text(),
+                end = document.select("#main")[0].select(".side-box a")[4].text()
+        )
     }
 
     fun getRooms(url: String): Room {
