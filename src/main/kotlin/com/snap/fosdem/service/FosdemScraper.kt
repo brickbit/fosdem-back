@@ -47,7 +47,7 @@ class FosdemScraper {
         features.add(getStandsFeature(9))
 
         val stands = title.mapIndexed { index, item ->
-            Stand(title = title[index], image = image[index], features = features[index].toList())
+            Stand(title = title[index], image = "https://fosdem.org"+image[index], features = features[index].toList())
         }
         return stands
     }
