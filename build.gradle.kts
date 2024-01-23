@@ -7,8 +7,8 @@ plugins {
 	kotlin("plugin.spring") version "1.9.21"
 }
 
-group = "com.snap"
-version = "0.0.1-SNAPSHOT"
+group = "com.snap.fosdem-back"
+version = "0.0.1"
 
 java {
 	sourceCompatibility = JavaVersion.VERSION_17
